@@ -6,6 +6,7 @@ import {
   hideLoader,
   showLoadMoreButton,
   hideLoadMoreButton,
+  showEndMessage,
 } from './js/render-functions.js';
 import iziToast from 'izitoast';
 import 'izitoast/dist/css/iziToast.min.css';
@@ -101,7 +102,7 @@ loadMoreButton.addEventListener('click', async () => {
     console.error('Error:', error);
     iziToast.error({
       title: 'Error',
-      message: 'Failed to load more images. Please try again.',
+      message: ' Failed to load more images. Please try again.',
       position: 'topRight',
     });
   } finally {

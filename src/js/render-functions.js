@@ -59,3 +59,10 @@ export function showLoadMoreButton() {
 export function hideLoadMoreButton() {
   loaderMoreBtn.classList.add('hidden');
 }
+export function showEndMessage() {
+  const message = document.createElement('p');
+  message.classList.add('end-message');
+  message.textContent =
+    "We're sorry, but you've reached the end of search results.";
+  document.querySelector('.btn-container').after(message);
+}
