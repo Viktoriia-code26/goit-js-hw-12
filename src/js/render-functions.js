@@ -1,4 +1,6 @@
+// Описаний у документації
 import SimpleLightbox from 'simplelightbox';
+// Додатковий імпорт стилів
 import 'simplelightbox/dist/simple-lightbox.min.css';
 
 const gallery = document.querySelector('.gallery');
@@ -11,7 +13,7 @@ export const lightbox = new SimpleLightbox('.gallery a', {
 });
 
 export function createGallery(images) {
-  const markup = images
+  return images
     .map(
       ({
         webformatURL,
@@ -36,8 +38,6 @@ export function createGallery(images) {
     `
     )
     .join('');
-  gallery.insertAdjacentHTML('beforeend', markup);
-  lightbox.refresh();
 }
 
 export function clearGallery() {
@@ -58,11 +58,4 @@ export function showLoadMoreButton() {
 
 export function hideLoadMoreButton() {
   loaderMoreBtn.classList.add('hidden');
-}
-export function showEndMessage() {
-  const message = document.createElement('p');
-  message.classList.add('end-message');
-  message.textContent =
-    "We're sorry, but you've reached the end of search results.";
-  document.querySelector('.btn-container').after(message);
 }

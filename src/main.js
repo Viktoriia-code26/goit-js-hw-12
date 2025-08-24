@@ -6,107 +6,135 @@ import {
   hideLoader,
   showLoadMoreButton,
   hideLoadMoreButton,
-  showEndMessage,
+  lightbox,
 } from './js/render-functions.js';
 import iziToast from 'izitoast';
 import 'izitoast/dist/css/iziToast.min.css';
 
-const form = document.querySelector('.form');
-const loadMoreButton = document.querySelector('.btn');
+const refs = {
+  formEl: document.querySelector('.form'),
+  ulElem: document.querySelector('.gallery'),
+  loaderMoreBtn: document.querySelector('.btn'),
+};
 
 let currentQuery = '';
-let currentPage = 1;
-let totalHits = 0;
-const perPage = 15;
+let currentPage;
+let maxPage = 0;
+let perPage = 15;
 
-form.addEventListener('submit', async e => {
+refs.formEl.addEventListener('submit', async e => {
   e.preventDefault();
 
-  const input = document.querySelector('input[name="search-text"]');
-  currentQuery = input.value.trim();
+  currentPage = 1;
+  showLoader();
+
+  currentQuery = e.target.elements['search-text'].value.trim();
 
   if (!currentQuery) {
     iziToast.error({
       title: 'Error',
-      message: 'Please enter a search query',
+      message: 'Please fill in the field',
       position: 'topRight',
+      color: 'red',
     });
+    hideLoader();
     return;
   }
 
-  currentPage = 1;
-  showLoader();
-  hideLoadMoreButton();
-  document.querySelector('.end-message')?.remove();
-
   try {
-    const data = await getImagesByQuery(currentQuery, currentPage);
-    totalHits = data.totalHits;
-
+    const res = await getImagesByQuery(currentQuery, currentPage);
     clearGallery();
-
-    if (data.hits.length === 0) {
-      iziToast.error({
-        title: 'Error',
-        message:
-          'Sorry, there are no images matching your search query. Please try again.',
+    if (res.hits.length === 0) {
+      iziToast.info({
+        title: 'Info',
+        message: 'Nothing found for your query.',
         position: 'topRight',
       });
+      hideLoader();
       return;
     }
 
-    createGallery(data.hits);
+    const markup = createGallery(res.hits);
+    refs.ulElem.innerHTML = markup;
 
-    iziToast.success({
-      title: 'Success',
-      message: `Hooray! We found ${totalHits} images.`,
-      position: 'topRight',
-    });
-
-    if (currentPage * perPage < totalHits) {
-      showLoadMoreButton();
-    } else {
-      showEndMessage();
-    }
+    lightbox.refresh();
+    maxPage = Math.ceil(res.totalHits / perPage);
   } catch (error) {
-    console.error('Error:', error);
+    console.error(error);
+    maxPage = 0;
     iziToast.error({
       title: 'Error',
-      message: 'Something went wrong. Please try again later.',
+      message: 'Something went wrong!',
       position: 'topRight',
+      color: 'red',
     });
-  } finally {
-    hideLoader();
   }
+
+  checkBtnVisibleStatus();
+  showNotification();
+  hideLoader();
+  e.target.reset();
 });
 
-loadMoreButton.addEventListener('click', async () => {
+refs.loaderMoreBtn.addEventListener('click', async () => {
   currentPage += 1;
+
   showLoader();
-  loadMoreButton.disabled = true;
+  checkBtnVisibleStatus();
+  showNotification();
 
   try {
-    const data = await getImagesByQuery(currentQuery, currentPage);
-    createGallery(data.hits);
+    const res = await getImagesByQuery(currentQuery, currentPage);
+    const markup = createGallery(res.hits);
+    refs.ulElem.insertAdjacentHTML('beforeend', markup);
+
+    const cardHeight =
+      refs.ulElem.firstElementChild?.getBoundingClientRect().height || 300;
 
     window.scrollBy({
-      top: 600,
+      top: cardHeight * 2,
       behavior: 'smooth',
     });
 
-    if (currentPage * perPage >= totalHits) {
-      hideLoadMoreButton();
-      showEndMessage();
-    }
-  } catch (error) {
-    console.error('Error:', error);
+    lightbox.refresh();
+  } catch {
     iziToast.error({
-      title: 'Error',
-      message: ' Failed to load more images. Please try again.',
+      title: `Error`,
+      message: `Error`,
+      position: 'topRight',
+      color: `red`,
+    });
+  }
+
+  hideLoader();
+});
+
+function checkBtnVisibleStatus() {
+  if (currentPage < maxPage) {
+    showLoadMoreButton();
+  } else {
+    hideLoadMoreButton();
+  }
+}
+
+function showNotification() {
+  if (currentPage === 1 && maxPage !== 0) {
+    iziToast.info({
+      title: `Info`,
+      message: `MaxPage - ${maxPage}`,
       position: 'topRight',
     });
-  } finally {
-    hideLoader();
-    loadMoreButton.disabled = false;
+  } else if (maxPage === 0) {
+    iziToast.info({
+      title: `Info`,
+      message: `Nothing found`,
+      position: 'topRight',
+    });
+  } else if (currentPage === maxPage) {
+    iziToast.info({
+      title: `Info`,
+      message: `This is the last page`,
+      position: 'topRight',
+    });
   }
-});
+}
