@@ -41,9 +41,11 @@ refs.formEl.addEventListener('submit', async e => {
     return;
   }
 
+  clearGallery();
+
   try {
     const res = await getImagesByQuery(currentQuery, currentPage);
-    clearGallery();
+
     if (res.hits.length === 0) {
       iziToast.info({
         title: 'Info',
@@ -56,9 +58,10 @@ refs.formEl.addEventListener('submit', async e => {
 
     const markup = createGallery(res.hits);
     refs.ulElem.innerHTML = markup;
+    maxPage = Math.ceil(res.totalHits / perPage);
 
     lightbox.refresh();
-    maxPage = Math.ceil(res.totalHits / perPage);
+    e.target.reset();
   } catch (error) {
     console.error(error);
     maxPage = 0;
@@ -68,45 +71,54 @@ refs.formEl.addEventListener('submit', async e => {
       position: 'topRight',
       color: 'red',
     });
+  } finally {
+    hideLoader();
   }
 
   checkBtnVisibleStatus();
   showNotification();
-  hideLoader();
-  e.target.reset();
 });
 
 refs.loaderMoreBtn.addEventListener('click', async () => {
   currentPage += 1;
 
+  refs.loaderMoreBtn.disabled = true;
   showLoader();
-  checkBtnVisibleStatus();
-  showNotification();
 
   try {
     const res = await getImagesByQuery(currentQuery, currentPage);
+
+    if (res.hits.length === 0) {
+      showNotification();
+      refs.loaderMoreBtn.style.display = 'none';
+      return;
+    }
+
     const markup = createGallery(res.hits);
     refs.ulElem.insertAdjacentHTML('beforeend', markup);
 
     const cardHeight =
       refs.ulElem.firstElementChild?.getBoundingClientRect().height || 300;
-
     window.scrollBy({
       top: cardHeight * 2,
       behavior: 'smooth',
     });
 
     lightbox.refresh();
-  } catch {
-    iziToast.error({
-      title: `Error`,
-      message: `Error`,
-      position: 'topRight',
-      color: `red`,
-    });
-  }
 
-  hideLoader();
+    checkBtnVisibleStatus();
+  } catch (error) {
+    console.error('Error loading more images:', error);
+    iziToast.error({
+      title: 'Error',
+      message: 'Failed to load more images',
+      position: 'topRight',
+      color: 'red',
+    });
+  } finally {
+    hideLoader();
+    refs.loaderMoreBtn.disabled = false;
+  }
 });
 
 function checkBtnVisibleStatus() {
